@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 13mm 14mm 16mm; @bottom-center { content: "SISC · Observatorio del Delito de Jamundí · " counter(page) "/" counter(pages); font-size: 7.5pt; color: #64748b; } }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; color: #172033; font-size: 9pt; line-height: 1.38; margin: 0; }
+  header { border-bottom: 4px solid #c49a35; padding-bottom: 8px; margin-bottom: 12px; }
+  .brand { color: #194b77; font-size: 11pt; font-weight: 700; letter-spacing: .2px; }
+  h1 { color: #123c62; font-size: 20pt; line-height: 1.08; margin: 5px 0; }
+  h2 { color: #194b77; font-size: 13pt; border-bottom: 1px solid #d8e1ea; padding-bottom: 3px; margin: 14px 0 7px; }
+  h3 { color: #2f506e; font-size: 10pt; margin: 8px 0 4px; }
+  .subtitle { color: #4b6073; font-size: 9pt; }
+  .cards { display: flex; gap: 8px; margin: 10px 0 13px; }
+  .card { flex: 1; border: 1px solid #d7e0e9; border-top: 4px solid #194b77; border-radius: 5px; padding: 8px; background: #f9fbfd; }
+  .card.victimas { border-top-color: #c49a35; } .card.procesados { border-top-color: #2f7d58; }
+  .number { color: #123c62; font-size: 18pt; font-weight: 700; }
+  .delta.up { color: #9b2c2c; } .delta.down { color: #17633b; }
+  .alert { background: #fff7e0; border-left: 4px solid #c49a35; padding: 7px 9px; margin: 5px 0; }
+  .method { background: #eef4f8; border: 1px solid #ccdce8; padding: 9px; font-size: 8pt; }
+  table { width: 100%; border-collapse: collapse; margin: 5px 0 10px; font-size: 8pt; }
+  th { background: #194b77; color: white; text-align: left; padding: 5px; }
+  td { border-bottom: 1px solid #dfe6ec; padding: 4px 5px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f9fb; }
+  .chart { width: 100%; margin: 4px 0 8px; }
+  .page-break { page-break-before: always; }
+  .small { font-size: 7.5pt; color: #52677a; }
+  a { color: #194b77; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">ALCALDÍA DE JAMUNDÍ · SECRETARÍA DE SEGURIDAD Y CONVIVENCIA</div>
+  <h1>Monitor Fiscalía SPOA V3</h1>
+  <div class="subtitle">Observatorio del Delito de Jamundí · SISC · Jamundí de Cara a la Gente</div>
+  <div class="subtitle"><strong>Corte:</strong> {{ indicators.cutoff_date or "No informado" }} · <strong>Consulta:</strong> {{ generated_label }} · <strong>Ejecución:</strong> {{ run_id }}</div>
+</header>
+
+<div class="cards">
+{% for key in ["procesos", "victimas", "procesados"] %}{% set item=indicators.datasets[key] %}
+<div class="card {{ key }}">
+  <div>{{ key|capitalize }} únicos · {{ item.current_year }} a mes {{ item.through_month }}</div>
+  <div class="number">{{ "{:,}".format(item.current_ytd) }}</div>
+  <div class="delta {{ 'up' if item.absolute_change > 0 else 'down' }}">{{ "%+d"|format(item.absolute_change) }} frente al mismo periodo {{ item.current_year - 1 }}{% if item.percentage_change is not none %} ({{ item.percentage_change }}%){% endif %}</div>
+  <div class="small">Acumulado histórico único: {{ "{:,}".format(item.overall_unique) }}</div>
+</div>
+{% endfor %}
+</div>
+
+<h2>Resumen ejecutivo</h2>
+<p>Esta capa describe actividad registrada en SPOA para hechos asociados territorialmente a Jamundí. Los conteos corresponden a identificadores únicos, no al número de filas ni a una equivalencia automática con delitos ocurridos.</p>
+{% if indicators.alerts %}
+{% for alert in indicators.alerts[:5] %}<div class="alert"><strong>{{ alert.dataset|capitalize }} · {{ alert.crime }}</strong>: {{ alert.absolute }} registros únicos adicionales frente al mismo periodo anterior{% if alert.percentage is not none %} ({{ alert.percentage }}%){% endif %}.</div>{% endfor %}
+{% else %}<div class="alert">No se activaron alertas cuantitativas con los umbrales configurados para este corte.</div>{% endif %}
+
+<h2>Evolución mensual del año vigente</h2>
+<img class="chart" src="{{ monthly_chart }}" alt="Evolución mensual">
+
+<h2>Relación entre las tres capas</h2>
+<table><tbody>
+<tr><td>Procesos presentes también en víctimas</td><td>{{ "{:,}".format(indicators.relationships.processes_with_victims) }}</td></tr>
+<tr><td>Procesos presentes también en procesados</td><td>{{ "{:,}".format(indicators.relationships.processes_with_processed) }}</td></tr>
+<tr><td>Procesos presentes en los tres conjuntos</td><td>{{ "{:,}".format(indicators.relationships.processes_with_both) }}</td></tr>
+<tr><td>Procesos con víctimas sin procesado en el corte</td><td>{{ "{:,}".format(indicators.relationships.victim_processes_without_processed) }}</td></tr>
+</tbody></table>
+
+{% for key in ["procesos", "victimas", "procesados"] %}{% set item=indicators.datasets[key] %}
+<div class="page-break"></div>
+<h2>{{ key|capitalize }}: detalle analítico</h2>
+<h3>Principales delitos del periodo equivalente</h3>
+<table><thead><tr><th>Delito</th><th>Identificadores únicos</th></tr></thead><tbody>
+{% for row in item.top_crimes %}<tr><td>{{ row.crime }}</td><td>{{ row.value }}</td></tr>{% endfor %}
+</tbody></table>
+<h3>Fenómenos priorizados</h3>
+<table><thead><tr><th>Grupo</th><th>Identificadores únicos</th></tr></thead><tbody>
+{% for label,value in item.crime_groups.items() %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}
+</tbody></table>
+<h3>Estado y etapa procesal</h3>
+<table><thead><tr><th>Estado</th><th>Total</th><th>Etapa</th><th>Total</th></tr></thead><tbody>
+{% set count = [item.state_distribution|length, item.stage_distribution|length]|max %}
+{% for i in range(count) %}<tr><td>{{ item.state_distribution[i].label if i < item.state_distribution|length else '' }}</td><td>{{ item.state_distribution[i].value if i < item.state_distribution|length else '' }}</td><td>{{ item.stage_distribution[i].label if i < item.stage_distribution|length else '' }}</td><td>{{ item.stage_distribution[i].value if i < item.stage_distribution|length else '' }}</td></tr>{% endfor %}
+</tbody></table>
+{% if key != "procesos" %}
+<h3>Caracterización disponible</h3>
+<table><thead><tr><th>Sexo</th><th>Total</th><th>Grupo etario</th><th>Total</th></tr></thead><tbody>
+{% set count = [item.sex_distribution|length, item.age_distribution|length]|max %}
+{% for i in range(count) %}<tr><td>{{ item.sex_distribution[i].label if i < item.sex_distribution|length else '' }}</td><td>{{ item.sex_distribution[i].value if i < item.sex_distribution|length else '' }}</td><td>{{ item.age_distribution[i].label if i < item.age_distribution|length else '' }}</td><td>{{ item.age_distribution[i].value if i < item.age_distribution|length else '' }}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+{% endfor %}
+
+<div class="page-break"></div>
+<h2>Control de calidad y trazabilidad</h2>
+<table><thead><tr><th>Conjunto</th><th>Filas oficiales</th><th>Jamundí</th><th>Válidas</th><th>Duplicadas</th><th>Descartadas</th><th>SHA-256 lote</th></tr></thead><tbody>
+{% for key in ["procesos", "victimas", "procesados"] %}{% set item=datasets[key] %}<tr><td>{{ datasets_specs[key].title }}<br><span class="small">{{ datasets_specs[key].dataset_id }}</span></td><td>{{ item.source_row_count if item.source_row_count is not none else 'No informado' }}</td><td>{{ item.filtered_count }}</td><td>{{ item.valid_count }}</td><td>{{ item.duplicate_rows }}</td><td>{{ item.discarded_count }}</td><td class="small">{{ item.payload_sha256 }}</td></tr>{% endfor %}
+</tbody></table>
+<div class="method"><strong>Nota metodológica.</strong> {{ methodology_note }}<br><br>
+<strong>Reglas de conteo.</strong> Procesos = valores únicos de <code>proceso_anonimizado</code>; víctimas = valores únicos de <code>id_victima_anonimizado</code>; procesados = valores únicos de <code>id_procesado_anonimizado</code>. Un proceso puede contener varios delitos y una persona puede aparecer en más de un registro asociado; las tablas de delitos cuentan cada identificador una vez por delito. Los códigos anonimizados se usan sólo como claves opacas para deduplicación y cruces.
+</div>
+<p class="small"><strong>Fuentes oficiales:</strong> {% for key,spec in datasets_specs.items() %}<a href="{{ spec.about_url }}">{{ spec.title }}</a>{% if not loop.last %} · {% endif %}{% endfor %} · <a href="{{ official_stats_url }}">Fiscalía General de la Nación</a></p>
+<p class="small"><strong>PDF SHA-256:</strong> se informa en el correo y manifiesto de ejecución, pues se calcula después de cerrar este documento. <strong>Ejecución:</strong> {{ run_id }}.</p>
+</body></html>

@@ -1,0 +1,15 @@
+<!doctype html><html lang="es"><body style="font-family:Arial,sans-serif;color:#172033;line-height:1.5">
+<div style="border-top:6px solid #194b77;padding:18px;max-width:760px">
+<div style="color:#194b77;font-weight:bold">ALCALDÍA DE JAMUNDÍ · SECRETARÍA DE SEGURIDAD Y CONVIVENCIA</div>
+<h1 style="font-size:22px;color:#123c62">Boletín Fiscalía SPOA V3</h1>
+<p>Observatorio del Delito de Jamundí · SISC · Jamundí de Cara a la Gente</p>
+<p><strong>Fecha de corte:</strong> {{ indicators.cutoff_date or "No informada" }}<br><strong>Conjuntos actualizados:</strong> {{ updated_datasets|join(", ") }}<br><strong>Ejecución:</strong> {{ run_id }}</p>
+<table style="width:100%;border-collapse:collapse"><tr>{% for key in ["procesos", "victimas", "procesados"] %}{% set item=indicators.datasets[key] %}<td style="border:1px solid #d7e0e9;padding:10px"><strong>{{ key|capitalize }}</strong><br><span style="font-size:24px;color:#194b77">{{ item.current_ytd }}</span><br>{{ "%+d"|format(item.absolute_change) }} frente a {{ item.current_year-1 }}</td>{% endfor %}</tr></table>
+<h2 style="color:#194b77">Alertas</h2>
+{% if indicators.alerts %}<ul>{% for alert in indicators.alerts[:5] %}<li><strong>{{ alert.dataset|capitalize }} · {{ alert.crime }}</strong>: {{ alert.absolute }} adicionales.</li>{% endfor %}</ul>{% else %}<p>No se activaron alertas con los umbrales configurados.</p>{% endif %}
+<p><a href="{{ dashboard_url }}">Abrir tablero del SISC</a></p>
+<p>Se adjunta el boletín PDF completo.</p>
+<p><strong>SHA-256 del PDF:</strong><br><code>{{ pdf_sha256 }}</code></p>
+<p style="font-size:12px;background:#eef4f8;padding:10px">{{ methodology_note }}</p>
+</div></body></html>
+
