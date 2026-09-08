@@ -30,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -42,7 +42,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Restaurar snapshots y estado
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             data/normalized
@@ -76,7 +76,7 @@ jobs:
 
       - name: Guardar snapshots y estado
         if: success()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             data/normalized
@@ -95,7 +95,7 @@ jobs:
 
       - name: Publicar boletín y manifiestos
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fiscalia-spoa-v3-${{ github.run_id }}
           path: |
