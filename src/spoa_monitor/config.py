@@ -130,19 +130,31 @@ class Settings:
     sisc_monitor_key: str
     sisc_sync_enabled: bool
     dashboard_url: str
+    socrata_max_retries: int = 6
+    socrata_backoff_seconds: float = 2.0
 
     @classmethod
     def from_env(cls) -> "Settings":
+        try:
+            max_retries = int(os.getenv("SOCRATA_MAX_RETRIES", "6"))
+        except ValueError:
+            max_retries = 6
+        try:
+            backoff = float(os.getenv("SOCRATA_RETRY_BACKOFF", "2.0"))
+        except ValueError:
+            backoff = 2.0
         return cls(
             state_dir=Path(os.getenv("SPOA_STATE_DIR", "state")),
             data_dir=Path(os.getenv("SPOA_DATA_DIR", "data")),
             output_dir=Path(os.getenv("SPOA_OUTPUT_DIR", "output")),
             socrata_app_token=os.getenv("SOCRATA_APP_TOKEN", "").strip(),
-            timeout_seconds=int(os.getenv("SOCRATA_TIMEOUT_SECONDS", "60")),
-            page_size=max(1, min(int(os.getenv("SOCRATA_PAGE_SIZE", "50000")), 50000)),
+            timeout_seconds=int(os.getenv("SOCRATA_TIMEOUT_SECONDS", "90")),
+            page_size=max(1, min(int(os.getenv("SOCRATA_PAGE_SIZE", "10000")), 50000)),
             sisc_api_url=os.getenv("SISC_API_URL", "https://sisc-backend.onrender.com/api").rstrip("/"),
             sisc_monitor_key=os.getenv("SISC_SOURCE_MONITOR_KEY", "").strip(),
             sisc_sync_enabled=os.getenv("SISC_SYNC_ENABLED", "true").lower() in {"1", "true", "yes"},
             dashboard_url=os.getenv("SISC_DASHBOARD_URL", "https://sisc-frontend.onrender.com").strip(),
+            socrata_max_retries=max(1, min(max_retries, 10)),
+            socrata_backoff_seconds=max(0.5, min(backoff, 10.0)),
         )
 

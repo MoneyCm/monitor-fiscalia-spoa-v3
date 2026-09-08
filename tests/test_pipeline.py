@@ -78,10 +78,69 @@ def test_metadata_only_change_downloads_but_does_not_publish_same_payload(worksp
 
 
 def test_download_error_is_recorded_and_does_not_generate_products(workspace_dir):
+    # Sin snapshot previo no hay fallback posible: el run debe fallar.
     result = MonitorPipeline(settings(workspace_dir), BrokenDownloadClient()).run(dry_run=True, sync_sisc=False)
     assert result["status"] == "FAILED"
     assert "descarga oficial no disponible" in result["warnings"][0]
     assert "bulletin_path" not in result
+
+
+class FlakyDownloadClient(FakeClient):
+    """Falla la descarga después de un run exitoso para probar el fallback."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fail = False
+
+    def iter_jamundi(self, spec, limit=None):
+        if self.fail:
+            from src.spoa_monitor.socrata import DownloadError
+
+            raise DownloadError("HTTPSConnectionPool read timed out")
+        yield from super().iter_jamundi(spec, limit=limit)
+
+
+def test_transient_download_uses_snapshot_and_stays_completed(workspace_dir):
+    config = settings(workspace_dir)
+    client = FlakyDownloadClient(metadata_hash="a" * 64)
+    first = MonitorPipeline(config, client).run(dry_run=True, sync_sisc=False)
+    assert first["status"] == "COMPLETED"
+
+    # Forzar must_fetch cambiando el hash de metadatos y luego fallar la descarga.
+    client.metadata_hash = "b" * 64
+    client.fail = True
+    second = MonitorPipeline(config, client).run(dry_run=True, sync_sisc=False)
+    assert second["status"] == "COMPLETED"
+    assert second["degraded"] is True
+    assert set(second["degraded_datasets"]) == set(DATASETS)
+    assert second["updated_datasets"] == []
+    assert any("snapshot reutilizado" in warning for warning in second["warnings"])
+
+
+class FlakyMetadataClient(FakeClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fail_metadata = False
+
+    def metadata(self, spec):
+        if self.fail_metadata:
+            from src.spoa_monitor.socrata import DownloadError
+
+            raise DownloadError("HTTPSConnectionPool read timed out (metadata)")
+        return super().metadata(spec)
+
+
+def test_transient_metadata_error_uses_snapshot_and_stays_completed(workspace_dir):
+    config = settings(workspace_dir)
+    client = FlakyMetadataClient()
+    first = MonitorPipeline(config, client).run(dry_run=True, sync_sisc=False)
+    assert first["status"] == "COMPLETED"
+
+    client.fail_metadata = True
+    second = MonitorPipeline(config, client).run(dry_run=True, sync_sisc=False)
+    assert second["status"] == "COMPLETED"
+    assert second["degraded"] is True
+    assert set(second["degraded_datasets"]) == set(DATASETS)
 
 
 def test_schema_alert_prevents_bulletin_and_state_replacement(workspace_dir):

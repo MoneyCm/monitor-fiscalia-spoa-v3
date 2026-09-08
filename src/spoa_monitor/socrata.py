@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -57,9 +58,21 @@ def _metadata_row_count(metadata: Dict[str, Any]) -> Optional[int]:
 
 
 class SocrataClient:
-    def __init__(self, app_token: str = "", timeout: int = 60, page_size: int = 50000):
+    def __init__(
+        self,
+        app_token: str = "",
+        timeout: int = 90,
+        page_size: int = 10000,
+        max_retries: int = 6,
+        backoff_base: float = 2.0,
+    ):
         self.timeout = timeout
-        self.page_size = page_size
+        self.page_size = max(1, min(page_size, 50000))
+        # Número total de intentos (incluye el primero). 6 intentos con timeout
+        # de 90s permiten tolerar ventanas de lentitud de datos.gov.co sin
+        # exceder el timeout global del job (90 min).
+        self.max_retries = max(1, max_retries)
+        self.backoff_base = max(0.5, backoff_base)
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -70,17 +83,42 @@ class SocrataClient:
         if app_token:
             self.session.headers["X-App-Token"] = app_token
 
+    @staticmethod
+    def _is_retryable(error: requests.RequestException) -> bool:
+        response = getattr(error, "response", None)
+        status = getattr(response, "status_code", None) if response is not None else None
+        if status is not None:
+            # 429/408/5xx son transitorios; 400/401/403/404 indican un
+            # problema de consulta o credencial que reintentar no corrige.
+            if status in {408, 429} or 500 <= status <= 599:
+                return True
+            return False
+        # Sin respuesta (timeout, DNS, conexión reseteada): reintentable.
+        return True
+
     def _get(self, url: str, *, params: Optional[dict] = None) -> requests.Response:
         last_error: Optional[Exception] = None
-        for attempt in range(4):
+        for attempt in range(self.max_retries):
             try:
                 response = self.session.get(url, params=params, timeout=self.timeout)
                 response.raise_for_status()
                 return response
             except requests.RequestException as error:
                 last_error = error
-                if attempt < 3:
-                    time.sleep(2 ** attempt)
+                retryable = self._is_retryable(error)
+                is_last = attempt >= self.max_retries - 1
+                if not retryable or is_last:
+                    break
+                delay = min(60.0, self.backoff_base * (2 ** attempt) + random.uniform(0, 1.0))
+                LOGGER.warning(
+                    "Reintento Socrata %d/%d en %.1fs para %s: %s",
+                    attempt + 1,
+                    self.max_retries,
+                    delay,
+                    url,
+                    error,
+                )
+                time.sleep(delay)
         raise DownloadError(f"No fue posible consultar la fuente oficial: {last_error}") from last_error
 
     def metadata(self, spec: DatasetSpec) -> MetadataSnapshot:

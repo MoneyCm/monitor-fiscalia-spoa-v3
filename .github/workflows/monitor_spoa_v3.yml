@@ -54,6 +54,10 @@ jobs:
       - name: Ejecutar monitor
         env:
           SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+          SOCRATA_TIMEOUT_SECONDS: "90"
+          SOCRATA_PAGE_SIZE: "10000"
+          SOCRATA_MAX_RETRIES: "6"
+          SOCRATA_RETRY_BACKOFF: "2.0"
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}

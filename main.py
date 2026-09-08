@@ -37,6 +37,9 @@ def main() -> int:
         "run_id": manifest["run_id"],
         "status": manifest["status"],
         "updated_datasets": manifest.get("updated_datasets", []),
+        "degraded_datasets": manifest.get("degraded_datasets", []),
+        "degraded": manifest.get("degraded", False),
+        "warnings": manifest.get("warnings", []),
         "bulletin_path": manifest.get("bulletin_path"),
         "pdf_sha256": manifest.get("pdf_sha256"),
     }, ensure_ascii=False))
