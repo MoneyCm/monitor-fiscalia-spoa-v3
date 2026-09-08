@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "datasets": {
+    "procesos": {
+      "dataset_id": "dbdv-iihs",
+      "metadata_sha256": "ad98a463218d62ce81c2e172be47b1b3462cf8a4e671bd4e2fb0440e7e538355",
+      "payload_sha256": "eee21548e16d5f5f5ad08481ffc5e5e077053247e62c3c42e16057663992df89",
+      "cutoff_date": "2026-08-31",
+      "schema_version": "1f6f7489e5e2bb8f",
+      "snapshot_path": "data/normalized/procesos-eee21548e16d5f5f.json",
+      "last_checked_at": "2026-09-08T15:40:12.279595+00:00",
+      "filtered_count": 64380,
+      "valid_count": 64380,
+      "discarded_count": 0,
+      "discard_reasons": {},
+      "duplicate_rows": 0
+    },
+    "victimas": {
+      "dataset_id": "hr73-zqjf",
+      "metadata_sha256": "3d81a48424a1ea0b1d8da62b373713d0dbb6a61c450bc33fd2e83620dbdb130d",
+      "payload_sha256": "84d3f3b281207fbdb159bb2feeb60c7a16b018a55d915df7d35d10720b4598a9",
+      "cutoff_date": "2026-08-31",
+      "schema_version": "764f8cb62e8a6f90",
+      "snapshot_path": "data/normalized/victimas-84d3f3b281207fbd.json",
+      "last_checked_at": "2026-09-08T15:40:41.044519+00:00",
+      "filtered_count": 60523,
+      "valid_count": 60523,
+      "discarded_count": 0,
+      "discard_reasons": {},
+      "duplicate_rows": 0
+    },
+    "procesados": {
+      "dataset_id": "piva-db2c",
+      "metadata_sha256": "cf7eaaa7c5da5db172e805e37ebe3379c6f69ec5cc73ee16ee98484f8b113fae",
+      "payload_sha256": "9e57709b54403128dc0081e2526aa9a474523fd71f1bbf1292b85f1bf844f37d",
+      "cutoff_date": "2026-08-31",
+      "schema_version": "f7e144c5d1dd1c20",
+      "snapshot_path": "data/normalized/procesados-9e57709b54403128.json",
+      "last_checked_at": "2026-09-08T15:44:15.658745+00:00",
+      "filtered_count": 35149,
+      "valid_count": 34330,
+      "discarded_count": 0,
+      "discard_reasons": {},
+      "duplicate_rows": 819
+    }
+  },
+  "last_run_id": "spoa-20260908T153939Z-8f5f73d0",
+  "updated_at": "2026-09-08T15:44:19.077491+00:00"
+}
