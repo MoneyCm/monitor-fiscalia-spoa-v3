@@ -150,11 +150,28 @@ def test_schema_alert_prevents_bulletin_and_state_replacement(workspace_dir):
     assert result["warnings"]
 
 
-def test_download_or_mail_error_is_recorded_without_secret(monkeypatch, workspace_dir):
+def test_mail_error_does_not_fail_run_and_leaks_no_secret(monkeypatch, workspace_dir):
+    # El correo es notificación secundaria: el boletín ya generado se conserva
+    # y el run sigue COMPLETED con el fallo registrado como warning.
     config = settings(workspace_dir)
     monkeypatch.setenv("SMTP_PASSWORD", "TOP_SECRET_PASSWORD")
     monkeypatch.setattr("src.spoa_monitor.pipeline.send_report", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("fallo SMTP")))
     result = MonitorPipeline(config, FakeClient()).run(dry_run=False, sync_sisc=False)
-    assert result["status"] == "FAILED"
+    assert result["status"] == "COMPLETED"
+    assert result["email_sent"] is False
+    assert Path(result["bulletin_path"]).exists()
     assert "TOP_SECRET_PASSWORD" not in str(result)
-    assert "fallo SMTP" in result["warnings"][0]
+    assert any("email_no_enviado" in warning and "fallo SMTP" in warning for warning in result["warnings"])
+
+
+def test_sisc_sync_error_does_not_fail_run(monkeypatch, workspace_dir):
+    config = settings(workspace_dir)
+    monkeypatch.setattr("src.spoa_monitor.pipeline.send_report", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "src.spoa_monitor.sisc.SiscClient.post",
+        lambda self, path, payload, timeout=90: (_ for _ in ()).throw(TimeoutError("cold start")),
+    )
+    result = MonitorPipeline(config, FakeClient()).run(dry_run=False, sync_sisc=True)
+    assert result["status"] == "COMPLETED"
+    assert result["sisc_synced"] is False
+    assert any("sisc_no_sincronizado" in warning for warning in result["warnings"])

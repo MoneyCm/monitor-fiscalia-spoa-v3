@@ -41,7 +41,7 @@ class SiscClient:
             headers["X-SISC-SOURCE-KEY"] = self.service_key
         return headers
 
-    def post(self, path: str, payload: Dict[str, Any], timeout: int = 45) -> Dict[str, Any]:
+    def post(self, path: str, payload: Dict[str, Any], timeout: int = 90) -> Dict[str, Any]:
         if not self.oidc_token and not self.service_key:
             raise RuntimeError("Integración SISC sin credencial OIDC ni clave de servicio")
         request = Request(

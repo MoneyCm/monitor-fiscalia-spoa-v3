@@ -321,8 +321,18 @@ class MonitorPipeline:
                         "Boletín Fiscalía SPOA V3 – Observatorio del Delito de Jamundí – "
                         f"Corte {cutoff_label}"
                     )
-                    send_report(subject, email_html, pdf_path, configured_recipients())
-                    manifest["email_sent"] = True
+                    # El correo es notificación secundaria: si falla (p. ej. SMTP
+                    # sin configurar en el runner), se registra y el run sigue
+                    # COMPLETED con el boletín ya generado.
+                    try:
+                        send_report(subject, email_html, pdf_path, configured_recipients())
+                        manifest["email_sent"] = True
+                    except Exception as error:
+                        manifest["email_sent"] = False
+                        manifest["warnings"].append(
+                            f"email_no_enviado: {type(error).__name__}: {str(error)[:300]}"
+                        )
+                        LOGGER.warning("No se pudo enviar el boletín por correo: %s", error)
                 else:
                     manifest["email_sent"] = False
             else:
@@ -331,14 +341,23 @@ class MonitorPipeline:
 
             do_sync = self.settings.sisc_sync_enabled if sync_sisc is None else sync_sisc
             if do_sync and not dry_run:
-                sisc = SiscClient(self.settings.sisc_api_url, self.settings.sisc_monitor_key)
-                if manifest["updated_datasets"]:
-                    for key in manifest["updated_datasets"]:
-                        sisc.ingest(run_id, key, manifest["datasets"][key], rows_by_dataset[key])
-                    sisc.complete_run(run_id, {**manifest, "status": "COMPLETED"})
-                    manifest["sisc_synced"] = True
-                else:
+                # La sincronización SISC tampoco invalida el boletín ya generado
+                # (el backend en Render puede estar en cold start y dar timeout).
+                try:
+                    sisc = SiscClient(self.settings.sisc_api_url, self.settings.sisc_monitor_key)
+                    if manifest["updated_datasets"]:
+                        for key in manifest["updated_datasets"]:
+                            sisc.ingest(run_id, key, manifest["datasets"][key], rows_by_dataset[key])
+                        sisc.complete_run(run_id, {**manifest, "status": "COMPLETED"})
+                        manifest["sisc_synced"] = True
+                    else:
+                        manifest["sisc_synced"] = False
+                except Exception as error:
                     manifest["sisc_synced"] = False
+                    manifest["warnings"].append(
+                        f"sisc_no_sincronizado: {type(error).__name__}: {str(error)[:300]}"
+                    )
+                    LOGGER.warning("No se pudo sincronizar con SISC: %s", error)
 
             manifest["status"] = "COMPLETED"
             for key, value in pending_state.items():
