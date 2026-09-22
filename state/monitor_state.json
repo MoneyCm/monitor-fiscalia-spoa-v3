@@ -8,7 +8,7 @@
       "cutoff_date": "2026-08-31",
       "schema_version": "1f6f7489e5e2bb8f",
       "snapshot_path": "data/normalized/procesos-eee21548e16d5f5f.json",
-      "last_checked_at": "2026-09-21T18:13:28.455034+00:00",
+      "last_checked_at": "2026-09-22T17:00:02.628451+00:00",
       "filtered_count": 64380,
       "valid_count": 64380,
       "discarded_count": 0,
@@ -22,7 +22,7 @@
       "cutoff_date": "2026-08-31",
       "schema_version": "764f8cb62e8a6f90",
       "snapshot_path": "data/normalized/victimas-84d3f3b281207fbd.json",
-      "last_checked_at": "2026-09-21T18:13:29.833350+00:00",
+      "last_checked_at": "2026-09-22T17:00:04.064978+00:00",
       "filtered_count": 60523,
       "valid_count": 60523,
       "discarded_count": 0,
@@ -36,7 +36,7 @@
       "cutoff_date": "2026-08-31",
       "schema_version": "f7e144c5d1dd1c20",
       "snapshot_path": "data/normalized/procesados-9e57709b54403128.json",
-      "last_checked_at": "2026-09-21T18:13:30.638737+00:00",
+      "last_checked_at": "2026-09-22T17:00:04.875545+00:00",
       "filtered_count": 35149,
       "valid_count": 34330,
       "discarded_count": 0,
@@ -44,6 +44,6 @@
       "duplicate_rows": 819
     }
   },
-  "last_run_id": "spoa-20260921T181327Z-8aef60bc",
-  "updated_at": "2026-09-21T18:13:32.303439+00:00"
+  "last_run_id": "spoa-20260922T170001Z-dd144b7f",
+  "updated_at": "2026-09-22T17:00:06.645162+00:00"
 }
