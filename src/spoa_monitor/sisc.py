@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Optional
 from urllib.error import HTTPError, URLError
@@ -80,7 +82,20 @@ class SiscClient:
             payload["last_success_at"] = datetime.now(timezone.utc).isoformat()
         if manifest.get("updated_datasets"):
             payload["last_change_detected_at"] = datetime.now(timezone.utc).isoformat()
-        return self.post("source-center/heartbeat", payload)
+        # Persist before delivery: an unavailable server must not lose this report.
+        Path("sisc-heartbeat.json").write_text(
+            json.dumps(payload, ensure_ascii=True, default=str), encoding="utf-8"
+        )
+        for attempt in range(3):
+            try:
+                return self.post("source-center/heartbeat", payload, timeout=60)
+            except HTTPError as error:
+                if error.code not in {408, 429, 500, 502, 503, 504} or attempt == 2:
+                    raise
+            except (URLError, TimeoutError, OSError):
+                if attempt == 2:
+                    raise
+            time.sleep(2 ** (attempt + 1))
 
     def ingest(
         self,
